@@ -1,0 +1,19 @@
+# Active when SPRING_PROFILES_ACTIVE=prod (set in the Dockerfile).
+# Database comes from env vars: SPRING_DATASOURCE_URL (jdbc:postgresql://host:5432/db), SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD.
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain
+    min-response-size: 1024
+
+auctiva:
+  jwt:
+    # No default on purpose: the app refuses to start in prod without a real secret (32+ characters).
+    secret: ${AUCTIVA_JWT_SECRET}
+
+management:
+  health:
+    redis:
+      enabled: false   # Redis/Kafka aren't used by the live modules yet; don't let them fail health checks

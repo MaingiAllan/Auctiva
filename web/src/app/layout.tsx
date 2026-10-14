@@ -3,6 +3,7 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/montserrat";
 import "./globals.css";
 import Splash from "@/components/Splash";
+import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: { default: "Auctiva — Community Market Place", template: "%s | Auctiva" },
@@ -14,8 +15,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Splash />
-        {children}
+        <AuthProvider>
+          <Splash />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

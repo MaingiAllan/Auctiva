@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LogOut, Menu, Search, User, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
-const links: [string, string][] = [["Phones", "/phones"], ["Sell", "/sell"]];
+const links: [string, string][] = [["Phones", "/phones"], ["Sell", "/sell"], ["Auctions", "/#auctions"], ["Reviews", "/#reviews"]];
 
 export default function Header() {
   const [open, setOpen] = useState(false);

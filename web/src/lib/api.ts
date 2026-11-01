@@ -1,7 +1,7 @@
 export type Grade = "A_PLUS" | "A" | "B_PLUS" | "B" | "C" | "D" | "PARTS_ONLY";
 export const GRADE_LABEL: Record<Grade, string> = { A_PLUS: "A+", A: "A", B_PLUS: "B+", B: "B", C: "C", D: "D", PARTS_ONLY: "Parts only" };
 export type DeviceModel = { id: string; brandName: string; name: string; variant: string | null; releaseYear: number | null };
-export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; conditionGrade: Grade; price: number; currency: string; location: string | null; status: string; createdAt: string };
+export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; conditionGrade: Grade; price: number; currency: string; location: string | null; status: string; createdAt: string; imageUrls?: string[] };
 export type Auth = { token: string; email: string; role: string };
 
 // Server components call the backend directly and cache for 30s (fast repeat visits).
@@ -24,3 +24,15 @@ export const login = (email: string, password: string) => call<Auth>("/api/auth/
 export const registerUser = (email: string, password: string, fullName: string) => call<Auth>("/api/auth/register", { email, password, fullName });
 export const getDeviceModels = () => call<(DeviceModel & { brandId: string })[]>("/api/catalog/device-models");
 export const createListing = (token: string, data: Record<string, unknown>) => call<Listing>("/api/listings", data, token);
+export async function uploadListingImages(token: string, listingId: string, files: File[]) {
+  const body = new FormData();
+  files.forEach((file) => body.append("images", file));
+  const response = await fetch(`/api/listings/${encodeURIComponent(listingId)}/images`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new ApiError(response.status, data?.message ?? `Photo upload failed (${response.status})`);
+  return data as string[];
+}

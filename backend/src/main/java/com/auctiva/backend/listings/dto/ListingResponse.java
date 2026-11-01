@@ -6,6 +6,7 @@ import com.auctiva.backend.listings.Listing;
 import com.auctiva.backend.listings.ListingStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ListingResponse(
@@ -19,7 +20,8 @@ public record ListingResponse(
         String currency,
         String location,
         ListingStatus status,
-        Instant createdAt
+        Instant createdAt,
+        List<String> imageUrls
 ) {
 
     public static ListingResponse from(Listing listing, DeviceModelSummary deviceModel) {
@@ -34,7 +36,13 @@ public record ListingResponse(
                 listing.getCurrency(),
                 listing.getLocation(),
                 listing.getStatus(),
-                listing.getCreatedAt()
+                listing.getCreatedAt(),
+                List.of()
         );
+    }
+
+    public ListingResponse withImageUrls(List<String> urls) {
+        return new ListingResponse(id, sellerId, deviceModel, title, description, conditionGrade,
+                price, currency, location, status, createdAt, urls);
     }
 }

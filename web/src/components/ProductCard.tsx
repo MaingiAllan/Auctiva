@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Smartphone } from "lucide-react";
 import { kes } from "@/lib/format";
 import { GRADE_LABEL, type Listing } from "@/lib/api";
@@ -7,7 +8,7 @@ export default function ProductCard({ l }: { l: Listing }) {
   return (
     <Link href={`/phones/${l.id}`} className="group overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-card transition duration-200 hover:-translate-y-1">
       <div className="relative flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-navy to-navy-dark">
-        <Smartphone className="h-12 w-12 text-white/25" aria-hidden />
+        {l.imageUrls?.[0] ? <Image src={l.imageUrls[0]} alt={l.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" /> : <Smartphone className="h-12 w-12 text-white/25" aria-hidden />}
         <span className="absolute left-3 top-3 rounded-lg bg-white px-2 py-1 text-xs font-bold text-navy">Grade {GRADE_LABEL[l.conditionGrade]}</span>
       </div>
       <div className="p-4">

@@ -15,28 +15,86 @@
   }
   :root.dark {
     color-scheme: dark;
-    --color-navy: 159 190 224;
-    --color-navy-dark: 119 159 202;
-    --color-navy-soft: 31 47 66;
-    --color-teal-deep: 76 203 205;
-    --color-teal-soft: 28 62 68;
-    --color-ink: 226 233 241;
-    --color-surface: 21 35 52;
+    --color-navy: 183 209 236;
+    --color-navy-dark: 203 225 245;
+    --color-navy-soft: 24 39 56;
+    --color-teal-deep: 112 214 218;
+    --color-teal-soft: 20 52 57;
+    --color-ink: 232 239 246;
+    --color-surface: 9 17 29;
   }
-  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-  body { @apply bg-white font-sans text-ink antialiased; line-height: 1.6; }
+  html {
+    background-color: rgb(var(--color-surface));
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white font-sans text-ink antialiased;
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+    line-height: 1.6;
+  }
+  :root.dark body {
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+  }
   h1, h2, h3 { @apply font-display text-navy; letter-spacing: -0.02em; line-height: 1.15; }
   :focus-visible {
     @apply outline-none ring-2 ring-teal ring-offset-2;
     --tw-ring-offset-color: rgb(var(--color-surface));
   }
+  input, select, textarea {
+    color: rgb(var(--color-ink));
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(var(--color-navy), 0.72);
+  }
 }
 
 @layer utilities {
-  .dark .bg-white { background-color: rgb(var(--color-surface)); }
-  .dark .bg-white\/90 { background-color: rgb(var(--color-surface) / 0.9); }
-  .dark .bg-white\/95 { background-color: rgb(var(--color-surface) / 0.95); }
-  .dark .shadow-card { box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -12px rgb(0 0 0 / 0.45); }
+  .dark body,
+  .dark .bg-white,
+  .dark .bg-white\/90,
+  .dark .bg-white\/95,
+  .dark .bg-slate-50,
+  .dark .bg-slate-100,
+  .dark .bg-gray-50,
+  .dark .shadow-card {
+    background-color: rgb(var(--color-surface));
+  }
+  .dark .shadow-card {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  }
+  .dark .text-navy,
+  .dark .text-navy\/50,
+  .dark .text-navy\/60,
+  .dark .text-navy\/80,
+  .dark .text-ink,
+  .dark .text-ink\/60,
+  .dark .text-ink\/70,
+  .dark .text-ink\/80 {
+    color: rgb(var(--color-ink));
+  }
+  .dark .text-navy {
+    color: rgb(var(--color-navy));
+  }
+  .dark .border-navy\/10,
+  .dark .border-navy\/15,
+  .dark .border-navy\/20,
+  .dark .border-navy\/30 {
+    border-color: rgba(var(--color-navy), 0.25);
+  }
+  .dark .bg-navy-soft {
+    background-color: rgb(var(--color-navy-soft));
+  }
+  .dark .bg-navy-soft\/60 {
+    background-color: rgba(var(--color-navy-soft), 0.6);
+  }
+  .dark .ring-offset-2,
+  .dark .ring-offset-white {
+    --tw-ring-offset-color: rgb(var(--color-surface));
+  }
 }
 
 @layer components {

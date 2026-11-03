@@ -2,14 +2,23 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, Menu, Search, User, X } from "lucide-react";
+import { LogOut, Menu, Monitor, Moon, Search, Sun, User, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useTheme } from "./ThemeProvider";
 
 const links: [string, string][] = [["Phones", "/phones"], ["Sell", "/sell"], ["Auctions", "/#auctions"], ["Reviews", "/#reviews"]];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { preference, resolvedTheme, cycleTheme } = useTheme();
+  const ThemeIcon = preference === "system" ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
+  const themeDescription = preference === "system"
+    ? `device setting (${resolvedTheme})`
+    : `${preference} mode`;
+  const nextTheme = preference === "system"
+    ? resolvedTheme === "dark" ? "light" : "dark"
+    : preference === "light" ? "dark" : "device setting";
   return (
     <header className="sticky top-0 z-40 border-b border-navy/10 bg-white/90 backdrop-blur pt-[env(safe-area-inset-top)]">
       <div className="container-page flex h-16 items-center gap-3 sm:gap-6">
@@ -27,6 +36,15 @@ export default function Header() {
         </nav>
         <div className="ml-auto flex items-center gap-2 lg:ml-2">
           <Link href="/phones" className="btn-ghost !min-w-[44px] !px-0 md:hidden" aria-label="Search"><Search className="h-5 w-5" /></Link>
+          <button
+            type="button"
+            onClick={cycleTheme}
+            className="btn-ghost !min-w-[44px] !px-0"
+            aria-label={`Theme is ${themeDescription}. Switch to ${nextTheme}.`}
+            title={`Theme: ${themeDescription}. Click to switch to ${nextTheme}.`}
+          >
+            <ThemeIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
           {user
             ? <button onClick={signOut} className="btn-ghost hidden sm:inline-flex" title={user.email}><LogOut className="h-4 w-4" />Sign out</button>
             : <Link href="/login" className="btn-primary hidden sm:inline-flex"><User className="h-4 w-4" />Sign in</Link>}

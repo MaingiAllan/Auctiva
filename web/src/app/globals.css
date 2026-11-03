@@ -3,10 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --color-navy: 23 55 94;
+    --color-navy-dark: 15 39 68;
+    --color-navy-soft: 232 238 245;
+    --color-teal-deep: 14 124 134;
+    --color-teal-soft: 227 245 245;
+    --color-ink: 18 38 63;
+    --color-surface: 255 255 255;
+  }
+  :root.dark {
+    color-scheme: dark;
+    --color-navy: 159 190 224;
+    --color-navy-dark: 119 159 202;
+    --color-navy-soft: 31 47 66;
+    --color-teal-deep: 76 203 205;
+    --color-teal-soft: 28 62 68;
+    --color-ink: 226 233 241;
+    --color-surface: 21 35 52;
+  }
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body { @apply bg-white font-sans text-ink antialiased; line-height: 1.6; }
   h1, h2, h3 { @apply font-display text-navy; letter-spacing: -0.02em; line-height: 1.15; }
-  :focus-visible { @apply outline-none ring-2 ring-teal ring-offset-2; }
+  :focus-visible {
+    @apply outline-none ring-2 ring-teal ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--color-surface));
+  }
+}
+
+@layer utilities {
+  .dark .bg-white { background-color: rgb(var(--color-surface)); }
+  .dark .bg-white\/90 { background-color: rgb(var(--color-surface) / 0.9); }
+  .dark .bg-white\/95 { background-color: rgb(var(--color-surface) / 0.95); }
+  .dark .shadow-card { box-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -12px rgb(0 0 0 / 0.45); }
 }
 
 @layer components {

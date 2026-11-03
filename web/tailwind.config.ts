@@ -5,12 +5,21 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   future: { hoverOnlyWhenSupported: true }, // no sticky hover states on touch devices
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        navy: { DEFAULT: "#17375E", dark: "#0F2744", soft: "#E8EEF5" },
-        teal: { DEFAULT: "#22A9A9", deep: "#0E7C86", soft: "#E3F5F5" },
-        ink: "#12263F",
+        navy: {
+          DEFAULT: "rgb(var(--color-navy) / <alpha-value>)",
+          dark: "rgb(var(--color-navy-dark) / <alpha-value>)",
+          soft: "rgb(var(--color-navy-soft) / <alpha-value>)",
+        },
+        teal: {
+          DEFAULT: "#22A9A9",
+          deep: "rgb(var(--color-teal-deep) / <alpha-value>)",
+          soft: "rgb(var(--color-teal-soft) / <alpha-value>)",
+        },
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
       },
       fontFamily: {
         sans: ['"Inter Variable"', "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],

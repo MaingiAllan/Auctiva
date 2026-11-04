@@ -2,7 +2,7 @@
 export default function BasketLoader({ label = "Loading Auctiva" }: { label?: string }) {
   return (
     <div role="status" aria-live="polite" className="flex flex-col items-center gap-5">
-      <svg viewBox="0 0 200 200" className="h-40 w-40 sm:h-48 sm:w-48" aria-hidden="true">
+      <svg viewBox="0 0 200 200" className="basket-illustration h-40 w-40 sm:h-48 sm:w-48" aria-hidden="true">
         <ellipse cx="100" cy="186" rx="52" ry="6" fill="#17375E" opacity=".12" />
         <g className="basket">
           {/* back handle + rim */}

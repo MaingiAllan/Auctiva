@@ -9,6 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        background: "rgb(var(--color-background) / <alpha-value>)",
+        surface: {
+          DEFAULT: "rgb(var(--color-surface) / <alpha-value>)",
+          raised: "rgb(var(--color-surface-raised) / <alpha-value>)",
+          muted: "rgb(var(--color-surface-muted) / <alpha-value>)",
+        },
+        muted: "rgb(var(--color-muted) / <alpha-value>)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
+        action: {
+          DEFAULT: "rgb(var(--color-action) / <alpha-value>)",
+          hover: "rgb(var(--color-action-hover) / <alpha-value>)",
+          text: "rgb(var(--color-action-text) / <alpha-value>)",
+        },
         navy: {
           DEFAULT: "rgb(var(--color-navy) / <alpha-value>)",
           dark: "rgb(var(--color-navy-dark) / <alpha-value>)",

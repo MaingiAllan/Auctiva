@@ -21,7 +21,16 @@ async function call<T>(path: string, body?: unknown, token?: string): Promise<T>
   return data as T;
 }
 export const login = (email: string, password: string) => call<Auth>("/api/auth/login", { email, password });
-export const registerUser = (email: string, password: string, fullName: string) => call<Auth>("/api/auth/register", { email, password, fullName });
+export const registerUser = (
+  email: string,
+  password: string,
+  fullName: string,
+  turnstileToken: string,
+) => call<{ message: string }>("/api/auth/register", {
+  email, password, fullName, turnstileToken, agreedToTerms: true,
+});
+export const verifyEmail = (token: string) =>
+  call<{ message: string }>("/api/auth/verify-email", { token });
 export const getDeviceModels = () => call<(DeviceModel & { brandId: string })[]>("/api/catalog/device-models");
 export const createListing = (token: string, data: Record<string, unknown>) => call<Listing>("/api/listings", data, token);
 export async function uploadListingImages(token: string, listingId: string, files: File[]) {

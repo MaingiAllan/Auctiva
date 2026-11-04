@@ -5,7 +5,8 @@ application, organized into business modules under `com.auctiva.backend`.
 
 ## What is implemented
 
-- `identity`: registration, login, password hashing, and JWT authentication.
+- `identity`: email/password registration, BCrypt password hashing, email verification,
+  Google/Apple OAuth, Cloudflare Turnstile verification, and JWT authentication.
 - `catalog`: phone brands and device models.
 - `listings`: public listing browse/detail endpoints and authenticated seller create,
 	update, and delete operations.
@@ -58,20 +59,35 @@ environment variables for a different local or deployment environment:
 | Database user | `SPRING_DATASOURCE_USERNAME` | `auctiva` |
 | Database password | `SPRING_DATASOURCE_PASSWORD` | `auctiva` |
 | JWT signing secret | `AUCTIVA_JWT_SECRET` | Development-only value in config |
+| Frontend origin | `AUCTIVA_FRONTEND_URL` | `http://localhost:3000` |
+| OAuth callback origin | `AUCTIVA_OAUTH_REDIRECT_BASE_URL` | `http://localhost:8080` |
+| Google OAuth credentials | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Not configured |
+| Apple OAuth credentials | `APPLE_OAUTH_CLIENT_ID`, `APPLE_OAUTH_CLIENT_SECRET` | Not configured |
+| Turnstile secret | `AUCTIVA_TURNSTILE_SECRET_KEY` | Not configured |
+| SMTP settings | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Not configured |
 
 Always set a strong, private `AUCTIVA_JWT_SECRET` outside local development. Do not
-commit secrets or production credentials.
+commit secrets or production credentials. Signup requires valid Turnstile and SMTP
+configuration; OAuth providers remain unavailable until their credentials are set.
+Copy `backend/.env.example` as a reference and provide the values to the backend
+process environment. Configure matching public settings in `web/.env.local` using
+`web/.env.example`. The provider redirect URL must be registered with Google/Apple;
+in local development it is `http://localhost:8080/login/oauth2/code/{registrationId}`.
 
 ## API overview
 
-All application routes use the `/api` prefix. Protected routes expect
+Application API routes use the `/api` prefix. OAuth routes use Spring Security's
+`/oauth2` and `/login/oauth2` paths. Protected API routes expect
 `Authorization: Bearer <token>`.
 
 | Method | Path | Access | Purpose |
 | --- | --- | --- | --- |
 | `GET` | `/api/status` | Public | Basic application status |
-| `POST` | `/api/auth/register` | Public | Register a buyer and receive a JWT |
+| `POST` | `/api/auth/register` | Public | Register a buyer and send an email verification link |
 | `POST` | `/api/auth/login` | Public | Authenticate and receive a JWT |
+| `POST` | `/api/auth/verify-email` | Public | Verify an email using the one-time token |
+| `GET` | `/oauth2/authorization/google` | Public | Start Google OAuth sign-in |
+| `GET` | `/oauth2/authorization/apple` | Public | Start Apple OAuth sign-in |
 | `GET` | `/api/catalog/brands` | Public | List phone brands |
 | `POST` | `/api/catalog/brands` | Admin | Create a brand |
 | `GET` | `/api/catalog/device-models` | Public | List models; optional `brandId` filter |
@@ -87,12 +103,22 @@ New registrations receive the `BUYER` role. Catalog writes require an account wi
 
 ### Example requests
 
-Register (the response includes the JWT token):
+Registration requires a valid Turnstile token and terms consent. It sends a one-time
+verification link; sign-in is enabled after that link is used. See the auth UI for the
+request shape.
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
 	-H 'Content-Type: application/json' \
-	-d '{"email":"seller@example.com","password":"a-strong-password","fullName":"A Seller"}'
+	-d '{"email":"seller@example.com","password":"A-strong-password1","fullName":"A Seller","turnstileToken":"<valid-token>","agreedToTerms":true}'
+```
+
+Verify the email with the token from the email link:
+
+```bash
+curl -X POST http://localhost:8080/api/auth/verify-email \
+	-H 'Content-Type: application/json' \
+	-d '{"token":"<verification-token>"}'
 ```
 
 Browse public listings, optionally filtering by model and price:

@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-const links = [["About", "/about"], ["Help & FAQ", "/help"], ["Terms", "/terms"], ["Privacy", "/privacy"]];
+const links: [string, string][] = [
+  ["About Us", "/about"],
+  ["Contact", "/help#contact"],
+  ["FAQ & Help", "/help"],
+  ["Terms", "/terms"],
+  ["Privacy", "/privacy"],
+];
 export default function Footer() {
   return (
     <footer className="border-t border-navy/10 pb-[env(safe-area-inset-bottom)]">

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Auth } from "./api";
 
 const KEY = "auctiva-auth";
@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch { localStorage.removeItem(KEY); }
     setReady(true);
   }, []);
-  const signIn = (a: Auth) => { localStorage.setItem(KEY, JSON.stringify(a)); setUser(a); };
-  const signOut = () => { localStorage.removeItem(KEY); setUser(null); };
+  const signIn = useCallback((a: Auth) => { localStorage.setItem(KEY, JSON.stringify(a)); setUser(a); }, []);
+  const signOut = useCallback(() => { localStorage.removeItem(KEY); setUser(null); }, []);
   return <C.Provider value={{ user, ready, signIn, signOut }}>{children}</C.Provider>;
 }

@@ -2,6 +2,7 @@ package com.auctiva.backend.listings;
 
 import com.auctiva.backend.identity.Role;
 import com.auctiva.backend.identity.UserPrincipal;
+import com.auctiva.backend.catalog.Category;
 import com.auctiva.backend.listings.dto.CreateListingRequest;
 import com.auctiva.backend.listings.dto.ListingResponse;
 import com.auctiva.backend.listings.dto.UpdateListingRequest;
@@ -45,10 +46,15 @@ public class ListingController {
     public List<ListingResponse> browse(
             @RequestParam(required = false) UUID deviceModelId,
             @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice) {
-        return listingService.browseActiveListings(deviceModelId, minPrice, maxPrice)
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Category category,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) ListingType listingType,
+            @RequestParam(required = false) ConditionGrade conditionGrade) {
+        return listingService.browseActiveListings(
+                        deviceModelId, minPrice, maxPrice, category, brand, listingType, conditionGrade)
                 .stream()
-            .map(this::response)
+                .map(this::response)
                 .toList();
     }
 

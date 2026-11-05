@@ -4,6 +4,7 @@ import com.auctiva.backend.catalog.dto.DeviceModelSummary;
 import com.auctiva.backend.listings.ConditionGrade;
 import com.auctiva.backend.listings.Listing;
 import com.auctiva.backend.listings.ListingStatus;
+import com.auctiva.backend.listings.ListingType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,7 @@ public record ListingResponse(
         DeviceModelSummary deviceModel,
         String title,
         String description,
+        ListingType listingType,
         ConditionGrade conditionGrade,
         BigDecimal price,
         String currency,
@@ -31,6 +33,7 @@ public record ListingResponse(
                 deviceModel,
                 listing.getTitle(),
                 listing.getDescription(),
+                listing.getListingType(),
                 listing.getConditionGrade(),
                 listing.getPrice(),
                 listing.getCurrency(),
@@ -42,7 +45,7 @@ public record ListingResponse(
     }
 
     public ListingResponse withImageUrls(List<String> urls) {
-        return new ListingResponse(id, sellerId, deviceModel, title, description, conditionGrade,
+        return new ListingResponse(id, sellerId, deviceModel, title, description, listingType, conditionGrade,
                 price, currency, location, status, createdAt, urls);
     }
 }

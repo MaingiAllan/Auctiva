@@ -1,7 +1,37 @@
 export type Grade = "A_PLUS" | "A" | "B_PLUS" | "B" | "C" | "D" | "PARTS_ONLY";
 export const GRADE_LABEL: Record<Grade, string> = { A_PLUS: "A+", A: "A", B_PLUS: "B+", B: "B", C: "C", D: "D", PARTS_ONLY: "Parts only" };
-export type DeviceModel = { id: string; brandName: string; name: string; variant: string | null; releaseYear: number | null };
-export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; conditionGrade: Grade; price: number; currency: string; location: string | null; status: string; createdAt: string; imageUrls?: string[] };
+export const CONDITION_GRADES: Grade[] = ["A_PLUS", "A", "B_PLUS", "B", "C", "D"];
+export type Category = "SMARTPHONE" | "LAPTOP" | "TABLET" | "WATCH" | "BLUETOOTH_SPEAKER" | "POWERBANK";
+export const CATEGORY_LABEL: Record<Category, string> = {
+  SMARTPHONE: "Phones",
+  LAPTOP: "Laptops",
+  TABLET: "Tablets",
+  WATCH: "Watches",
+  BLUETOOTH_SPEAKER: "Bluetooth Speakers",
+  POWERBANK: "Powerbanks",
+};
+export const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
+export type ListingType = "BRAND_NEW" | "REFURBISHED" | "FAIRLY_USED" | "PARTS_ONLY";
+export const LISTING_TYPE_LABEL: Record<ListingType, string> = {
+  BRAND_NEW: "Brand New",
+  REFURBISHED: "Refurbished",
+  FAIRLY_USED: "Fairly Used",
+  PARTS_ONLY: "Parts Only",
+};
+export const LISTING_TYPES = Object.keys(LISTING_TYPE_LABEL) as ListingType[];
+export type DeviceModel = { id: string; brandName: string; name: string; variant: string | null; releaseYear: number | null; category: Category };
+export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; listingType: ListingType; conditionGrade: Grade | null; price: number; currency: string; location: string | null; status: string; createdAt: string; imageUrls?: string[] };
+export type CreateListingInput = {
+  deviceModelId: string;
+  title: string;
+  description?: string;
+  listingType: ListingType;
+  conditionGrade: Grade | null;
+  price: number;
+  currency: string;
+  location?: string;
+  imei1?: string;
+};
 export type Auth = { token: string; email: string; role: string };
 
 // Server components call the backend directly and cache for 30s (fast repeat visits).
@@ -11,6 +41,7 @@ async function serverGet<T>(path: string): Promise<T | null> {
 }
 export const getListings = () => serverGet<Listing[]>("/api/listings");
 export const getListing = (id: string) => serverGet<Listing>(`/api/listings/${encodeURIComponent(id)}`);
+export const getCatalogModels = () => serverGet<(DeviceModel & { brandId: string })[]>("/api/catalog/device-models");
 
 // Browser calls go through the same-origin /api rewrite (see next.config.js).
 export class ApiError extends Error { constructor(public status: number, message: string) { super(message); } }
@@ -31,8 +62,13 @@ export const registerUser = (
 });
 export const verifyEmail = (token: string) =>
   call<{ message: string }>("/api/auth/verify-email", { token });
-export const getDeviceModels = () => call<(DeviceModel & { brandId: string })[]>("/api/catalog/device-models");
-export const createListing = (token: string, data: Record<string, unknown>) => call<Listing>("/api/listings", data, token);
+export const getDeviceModels = (category?: Category, brandId?: string) => {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (brandId) params.set("brandId", brandId);
+  return call<(DeviceModel & { brandId: string })[]>(`/api/catalog/device-models${params.size ? `?${params}` : ""}`);
+};
+export const createListing = (token: string, data: CreateListingInput) => call<Listing>("/api/listings", data, token);
 export async function uploadListingImages(token: string, listingId: string, files: File[]) {
   const body = new FormData();
   files.forEach((file) => body.append("images", file));

@@ -1,6 +1,7 @@
 package com.auctiva.backend.listings;
 
 import com.auctiva.backend.catalog.CatalogService;
+import com.auctiva.backend.catalog.Category;
 import com.auctiva.backend.listings.dto.CreateListingRequest;
 import com.auctiva.backend.listings.dto.ListingResponse;
 import com.auctiva.backend.listings.dto.UpdateListingRequest;
@@ -26,12 +27,14 @@ public class ListingService {
         catalogService.findSummary(request.deviceModelId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Unknown device model id: " + request.deviceModelId()));
+        validateCondition(request.listingType(), request.conditionGrade());
 
         Listing listing = new Listing(
                 sellerId,
                 request.deviceModelId(),
                 request.title(),
                 request.description(),
+                request.listingType(),
                 request.conditionGrade(),
                 request.price(),
                 request.currency(),
@@ -43,16 +46,33 @@ public class ListingService {
         return listingRepository.save(listing);
     }
 
-    public List<Listing> browseActiveListings(UUID deviceModelId, BigDecimal minPrice, BigDecimal maxPrice) {
+    public List<Listing> browseActiveListings(
+            UUID deviceModelId,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Category category,
+            String brand,
+            ListingType listingType,
+            ConditionGrade conditionGrade) {
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new IllegalArgumentException("Minimum price cannot be greater than maximum price");
+        }
         List<Listing> listings = deviceModelId != null
                 ? listingRepository.findByDeviceModelIdAndStatus(deviceModelId, ListingStatus.ACTIVE)
                 : listingRepository.findByStatus(ListingStatus.ACTIVE);
 
-        // In-memory filtering is fine at MVP scale. Once volume grows, this range
-        // filter moves to the `search` module's indexed query instead.
         return listings.stream()
                 .filter(l -> minPrice == null || l.getPrice().compareTo(minPrice) >= 0)
                 .filter(l -> maxPrice == null || l.getPrice().compareTo(maxPrice) <= 0)
+                .filter(l -> {
+                    var model = catalogService.findSummary(l.getDeviceModelId()).orElse(null);
+                    return model != null
+                            && (category == null || category.name().equals(model.category()))
+                            && (brand == null || brand.isBlank()
+                                    || brand.trim().equalsIgnoreCase(model.brandName()));
+                })
+                .filter(l -> listingType == null || listingType == l.getListingType())
+                .filter(l -> conditionGrade == null || conditionGrade == l.getConditionGrade())
                 .toList();
     }
 
@@ -82,6 +102,19 @@ public class ListingService {
     private void requireOwnerOrAdmin(Listing listing, UUID requesterId, boolean isAdmin) {
         if (!isAdmin && !listing.getSellerId().equals(requesterId)) {
             throw new AccessDeniedException("You do not own this listing");
+        }
+    }
+
+    private void validateCondition(ListingType listingType, ConditionGrade grade) {
+        if (listingType == ListingType.BRAND_NEW && grade != null) {
+            throw new IllegalArgumentException("Brand new listings must not include a condition grade");
+        }
+        if (listingType == ListingType.PARTS_ONLY && grade != ConditionGrade.PARTS_ONLY) {
+            throw new IllegalArgumentException("Parts-only listings must use the Parts only grade");
+        }
+        if ((listingType == ListingType.REFURBISHED || listingType == ListingType.FAIRLY_USED)
+                && (grade == null || grade == ConditionGrade.PARTS_ONLY)) {
+            throw new IllegalArgumentException("Choose a condition grade for refurbished or fairly used items");
         }
     }
 }

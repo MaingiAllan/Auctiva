@@ -28,14 +28,18 @@ public class CatalogService {
         return brandRepository.save(new Brand(name));
     }
 
-    public List<DeviceModel> listDeviceModels(UUID brandId) {
-        return brandId == null ? deviceModelRepository.findAll() : deviceModelRepository.findByBrandId(brandId);
+    public List<DeviceModel> listDeviceModels(UUID brandId, Category category) {
+        return deviceModelRepository.findAll().stream()
+                .filter(model -> brandId == null || model.getBrand().getId().equals(brandId))
+                .filter(model -> category == null || model.getCategory().equals(category.name()))
+                .toList();
     }
 
-    public DeviceModel createDeviceModel(UUID brandId, String name, String variant, Integer releaseYear) {
+    public DeviceModel createDeviceModel(
+            UUID brandId, String name, String variant, Integer releaseYear, Category category) {
         Brand brand = brandRepository.findById(brandId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown brand id: " + brandId));
-        return deviceModelRepository.save(new DeviceModel(brand, name, variant, releaseYear));
+        return deviceModelRepository.save(new DeviceModel(brand, name, variant, releaseYear, category));
     }
 
     /** The one thing other modules (e.g. listings) are allowed to call. */

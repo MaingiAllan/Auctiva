@@ -8,7 +8,8 @@ import java.util.UUID;
  * outside `catalog` should never import {@link DeviceModel} or its repository directly
  * — go through {@code CatalogService.findSummary(...)} instead.
  */
-public record DeviceModelSummary(UUID id, String brandName, String name, String variant, Integer releaseYear) {
+public record DeviceModelSummary(
+        UUID id, String brandName, String name, String variant, Integer releaseYear, String category) {
 
     public static DeviceModelSummary from(DeviceModel model) {
         return new DeviceModelSummary(
@@ -16,7 +17,8 @@ public record DeviceModelSummary(UUID id, String brandName, String name, String 
                 model.getBrand().getName(),
                 model.getName(),
                 model.getVariant(),
-                model.getReleaseYear()
+                model.getReleaseYear(),
+                model.getCategory()
         );
     }
 }

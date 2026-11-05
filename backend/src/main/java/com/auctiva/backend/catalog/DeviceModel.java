@@ -41,8 +41,6 @@ public class DeviceModel {
     @Column(name = "release_year")
     private Integer releaseYear;
 
-    // Constrained to "SMARTPHONE" at the DB level (see V3 migration) per the MVP's
-    // smartphone-only scope. Do not widen this without updating that CHECK constraint.
     @Column(nullable = false)
     private String category = "SMARTPHONE";
 
@@ -54,10 +52,15 @@ public class DeviceModel {
     }
 
     public DeviceModel(Brand brand, String name, String variant, Integer releaseYear) {
+        this(brand, name, variant, releaseYear, Category.SMARTPHONE);
+    }
+
+    public DeviceModel(Brand brand, String name, String variant, Integer releaseYear, Category category) {
         this.brand = brand;
         this.name = name;
         this.variant = variant;
         this.releaseYear = releaseYear;
+        this.category = (category == null ? Category.SMARTPHONE : category).name();
     }
 
     public UUID getId() {

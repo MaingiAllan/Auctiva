@@ -42,14 +42,16 @@ public class CatalogController {
     }
 
     @GetMapping("/device-models")
-    public List<DeviceModelResponse> listDeviceModels(@RequestParam(required = false) UUID brandId) {
-        return catalogService.listDeviceModels(brandId).stream().map(DeviceModelResponse::from).toList();
+    public List<DeviceModelResponse> listDeviceModels(
+            @RequestParam(required = false) UUID brandId,
+            @RequestParam(required = false) Category category) {
+        return catalogService.listDeviceModels(brandId, category).stream().map(DeviceModelResponse::from).toList();
     }
 
     @PostMapping("/device-models")
     public ResponseEntity<DeviceModelResponse> createDeviceModel(@Valid @RequestBody CreateDeviceModelRequest request) {
         DeviceModel model = catalogService.createDeviceModel(
-                request.brandId(), request.name(), request.variant(), request.releaseYear());
+                request.brandId(), request.name(), request.variant(), request.releaseYear(), request.category());
         return ResponseEntity.status(HttpStatus.CREATED).body(DeviceModelResponse.from(model));
     }
 }

@@ -38,8 +38,12 @@ public class Listing {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "condition_grade", nullable = false)
+    @Column(name = "condition_grade")
     private ConditionGrade conditionGrade;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "listing_type", nullable = false, length = 24)
+    private ListingType listingType = ListingType.FAIRLY_USED;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
@@ -75,10 +79,18 @@ public class Listing {
     public Listing(UUID sellerId, UUID deviceModelId, String title, String description,
                     ConditionGrade conditionGrade, BigDecimal price, String currency,
                     String location, String imei1, String imei2, String serialNumber) {
+        this(sellerId, deviceModelId, title, description, ListingType.FAIRLY_USED,
+                conditionGrade, price, currency, location, imei1, imei2, serialNumber);
+    }
+
+    public Listing(UUID sellerId, UUID deviceModelId, String title, String description,
+                    ListingType listingType, ConditionGrade conditionGrade, BigDecimal price, String currency,
+                    String location, String imei1, String imei2, String serialNumber) {
         this.sellerId = sellerId;
         this.deviceModelId = deviceModelId;
         this.title = title;
         this.description = description;
+        this.listingType = listingType == null ? ListingType.FAIRLY_USED : listingType;
         this.conditionGrade = conditionGrade;
         this.price = price;
         this.currency = (currency == null || currency.isBlank()) ? "KES" : currency;
@@ -128,6 +140,10 @@ public class Listing {
 
     public ConditionGrade getConditionGrade() {
         return conditionGrade;
+    }
+
+    public ListingType getListingType() {
+        return listingType;
     }
 
     public BigDecimal getPrice() {

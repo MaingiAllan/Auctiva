@@ -2,16 +2,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Smartphone } from "lucide-react";
 import { kes } from "@/lib/format";
-import { GRADE_LABEL, type Listing } from "@/lib/api";
+import { CATEGORY_LABEL, GRADE_LABEL, LISTING_TYPE_LABEL, type Listing } from "@/lib/api";
 
 export default function ProductCard({ l }: { l: Listing }) {
   return (
     <Link href={`/phones/${l.id}`} className="group overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-card transition duration-200 hover:-translate-y-1">
       <div className="relative flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-navy to-navy-dark">
         {l.imageUrls?.[0] ? <Image src={l.imageUrls[0]} alt={l.title} fill sizes="(max-width: 480px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" /> : <Smartphone className="h-12 w-12 text-white/25" aria-hidden />}
-        <span className="absolute left-3 top-3 rounded-lg bg-white px-2 py-1 text-xs font-bold text-navy">Grade {GRADE_LABEL[l.conditionGrade]}</span>
+        <span className="absolute left-3 top-3 rounded-lg bg-white px-2 py-1 text-xs font-bold text-navy">{LISTING_TYPE_LABEL[l.listingType]}{l.conditionGrade ? ` · ${GRADE_LABEL[l.conditionGrade]}` : ""}</span>
       </div>
       <div className="p-4">
+        <p className="text-xs text-ink/60">{CATEGORY_LABEL[l.deviceModel.category]}</p>
         <p className="text-xs font-semibold text-teal-deep">{l.deviceModel.brandName}</p>
         <h3 className="line-clamp-1 text-base font-bold">{l.title}</h3>
         <p className="mt-1 text-lg font-extrabold text-navy">{kes(l.price, l.currency)}</p>

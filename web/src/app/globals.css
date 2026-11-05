@@ -114,6 +114,9 @@
   .dark .bg-navy-soft\/60 {
     background-color: var(--accent-muted);
   }
+  .dark .bg-teal-soft {
+    background-color: var(--accent-muted);
+  }
   .dark .shadow-card {
     box-shadow: var(--shadow-md);
   }

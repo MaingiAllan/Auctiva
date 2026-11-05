@@ -23,7 +23,8 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-navy/10 bg-white/90 backdrop-blur pt-[env(safe-area-inset-top)]">
       <div className="container-page flex h-16 items-center gap-3 sm:gap-6">
         <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Auctiva home">
-          <Image src="/logo-icon.png" alt="" width={40} height={40} priority className="h-9 w-9 sm:h-10 sm:w-10" />
+          <Image src="/logo-icon.png" alt="" width={40} height={40} priority className="h-9 w-9 dark:hidden sm:h-10 sm:w-10" />
+          <Image src="/logo-icon-dark.png" alt="" width={40} height={40} priority className="hidden h-9 w-9 dark:block sm:h-10 sm:w-10" />
           <span className="font-display text-lg font-extrabold tracking-tight text-navy sm:text-xl">AUCTIVA</span>
         </Link>
         <form role="search" action="/phones" className="relative hidden min-w-0 flex-1 md:block lg:max-w-xl">

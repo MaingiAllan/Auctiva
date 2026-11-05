@@ -1,8 +1,9 @@
 package com.auctiva.backend.payments;
 
-import com.auctiva.backend.listings.Listing;
+import com.auctiva.backend.orders.Order;
+import com.auctiva.backend.orders.OrderStatus;
+import com.auctiva.backend.orders.OrderService;
 import com.auctiva.backend.listings.ListingService;
-import com.auctiva.backend.listings.ListingStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +24,15 @@ public class PaymentService {
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRepository payments;
+    private final OrderService orders;
     private final ListingService listings;
     private final MpesaClient mpesa;
     private final String callbackToken;
 
-    public PaymentService(PaymentRepository payments, ListingService listings, MpesaClient mpesa,
+    public PaymentService(PaymentRepository payments, OrderService orders, ListingService listings, MpesaClient mpesa,
                           @Value("${auctiva.mpesa.callback-token:}") String callbackToken) {
         this.payments = payments;
+        this.orders = orders;
         this.listings = listings;
         this.mpesa = mpesa;
         this.callbackToken = callbackToken;
@@ -52,43 +54,57 @@ public class PaymentService {
     }
 
     /**
-     * Starts an STK Push. The amount comes from the listing, never from the client. Repeating the
+     * Starts an STK Push. The amount comes from the order snapshot, never from the client. Repeating the
      * same idempotency key returns the original payment instead of charging twice; to retry after a
      * failure the client must send a new key. No DB transaction is held open during the HTTP call.
      */
-    public Payment startMpesaPayment(UUID userId, UUID listingId, String rawPhone, String key) {
+    public Payment startMpesaPayment(UUID userId, UUID orderId, String rawPhone, String key) {
         Optional<Payment> existing = payments.findByUserIdAndIdempotencyKey(userId, key);
         if (existing.isPresent()) {
             return existing.get();
         }
-        Listing listing = listings.getListingOrThrow(listingId);
-        if (listing.getStatus() != ListingStatus.ACTIVE) {
-            throw bad("This listing is no longer available");
+        Order order = orders.getOrderOrThrow(orderId);
+        if (!order.getBuyerId().equals(userId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Not your order");
         }
-        if (listing.getSellerId().equals(userId)) {
-            throw bad("You can't buy your own listing");
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw bad("This order is no longer awaiting payment");
         }
-        if (!"KES".equals(listing.getCurrency())) {
-            throw bad("M-Pesa supports KES listings only");
-        }
-        BigDecimal amount = listing.getPrice();
-        if (amount.stripTrailingZeros().scale() > 0) {
-            throw bad("Price must be a whole number of shillings for M-Pesa");
-        }
-        Payment payment = new Payment(userId, listing.getId(), amount, "KES", "MPESA", normalisePhone(rawPhone), key);
+        BigDecimal amount;
+        String phone;
         try {
-            payment = payments.saveAndFlush(payment);
-        } catch (DataIntegrityViolationException ex) {
-            return payments.findByUserIdAndIdempotencyKey(userId, key).orElseThrow(() -> ex);
+            if (!"KES".equals(order.getCurrency())) {
+                throw bad("M-Pesa supports KES listings only");
+            }
+            amount = order.getAmount();
+            if (amount.stripTrailingZeros().scale() > 0) {
+                throw bad("Price must be a whole number of shillings for M-Pesa");
+            }
+            phone = normalisePhone(rawPhone);
+        } catch (RuntimeException ex) {
+            orders.cancelAfterPaymentFailure(order.getId());
+            throw ex;
         }
+        Payment payment = new Payment(userId, order.getListingId(), order.getId(), amount, "KES", "MPESA",
+                phone, key);
+        payment = payments.saveAndFlush(payment);
         try {
             MpesaClient.StkResponse res = mpesa.stkPush(payment.getPhone(), amount.longValueExact(), payment.getId());
             payment.markPushed(res.merchantRequestId(), res.checkoutRequestId());
         } catch (MpesaException ex) {
             log.warn("STK push failed for payment {}: {}", payment.getId(), ex.getMessage());
-            payment.finish(PaymentStatus.FAILED, null, ex.getMessage());
+            if (ex.isOutcomeUnknown()) {
+                payment.finish(PaymentStatus.REQUIRES_REVIEW, null, ex.getMessage());
+                orders.markPaymentReview(order.getId());
+            } else {
+                payment.finish(PaymentStatus.FAILED, null, ex.getMessage());
+                orders.cancelAfterPaymentFailure(order.getId());
+            }
             payments.save(payment);
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Couldn't start the M-Pesa payment. Please try again.");
+            String message = ex.isOutcomeUnknown()
+                    ? "M-Pesa may have received the request. Don't retry this payment; it needs manual review."
+                    : "Couldn't start the M-Pesa payment. Please try again.";
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, message);
         }
         return payments.save(payment);
     }
@@ -108,7 +124,7 @@ public class PaymentService {
     public void handleCallback(JsonNode body) {
         JsonNode cb = body.path("Body").path("stkCallback");
         String checkoutId = cb.path("CheckoutRequestID").asText("");
-        Optional<Payment> found = payments.findByCheckoutRequestId(checkoutId);
+        Optional<Payment> found = payments.findByCheckoutRequestIdForUpdate(checkoutId);
         if (found.isEmpty()) {
             log.warn("M-Pesa callback for unknown CheckoutRequestID {}", checkoutId);
             return;
@@ -122,6 +138,9 @@ public class PaymentService {
         payment.recordCallback(code, body.toString());
         if (code != 0) {
             payment.finish(code == 1032 ? PaymentStatus.CANCELLED : PaymentStatus.FAILED, null, desc);
+            if (payment.getOrderId() != null) {
+                orders.cancelAfterPaymentFailure(payment.getOrderId());
+            }
             return;
         }
         String receipt = null;
@@ -136,8 +155,22 @@ public class PaymentService {
         }
         if (paid == null || paid.compareTo(payment.getAmount()) != 0 || receipt == null) {
             log.error("M-Pesa amount/receipt mismatch for payment {}: paid={} expected={}", payment.getId(), paid, payment.getAmount());
-            payment.finish(PaymentStatus.FAILED, null, "Amount or receipt mismatch; needs manual review");
+            payment.finish(PaymentStatus.REQUIRES_REVIEW, null, "Amount or receipt mismatch; needs manual review");
+            if (payment.getOrderId() != null) {
+                orders.markPaymentReview(payment.getOrderId());
+            }
             return;
+        }
+        if (payment.getOrderId() != null) {
+            orders.markPaid(payment.getOrderId());
+        } else {
+            if (!listings.completeLegacyPayment(payment.getListingId())) {
+                log.error("Successful legacy payment {} could not be matched to an available listing; manual review required",
+                        payment.getId());
+                payment.finish(PaymentStatus.REQUIRES_REVIEW, null,
+                        "Payment received but listing is unavailable; needs manual review");
+                return;
+            }
         }
         payment.finish(PaymentStatus.SUCCEEDED, receipt, desc);
     }

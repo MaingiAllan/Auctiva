@@ -24,6 +24,8 @@ public class Payment {
     private UUID userId;
     @Column(name = "listing_id", nullable = false)
     private UUID listingId;
+    @Column(name = "order_id")
+    private UUID orderId;
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
     @Column(nullable = false)
@@ -58,8 +60,14 @@ public class Payment {
     }
 
     public Payment(UUID userId, UUID listingId, BigDecimal amount, String currency, String method, String phone, String idempotencyKey) {
+        this(userId, listingId, null, amount, currency, method, phone, idempotencyKey);
+    }
+
+    public Payment(UUID userId, UUID listingId, UUID orderId, BigDecimal amount, String currency,
+                   String method, String phone, String idempotencyKey) {
         this.userId = userId;
         this.listingId = listingId;
+        this.orderId = orderId;
         this.amount = amount;
         this.currency = currency;
         this.method = method;
@@ -89,6 +97,7 @@ public class Payment {
     public UUID getId() { return id; }
     public UUID getUserId() { return userId; }
     public UUID getListingId() { return listingId; }
+    public UUID getOrderId() { return orderId; }
     public BigDecimal getAmount() { return amount; }
     public String getCurrency() { return currency; }
     public PaymentStatus getStatus() { return status; }

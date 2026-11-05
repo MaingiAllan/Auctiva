@@ -9,8 +9,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ListingService {
@@ -81,16 +84,75 @@ public class ListingService {
                 .orElseThrow(() -> new NoSuchElementException("Listing not found: " + id));
     }
 
+    @Transactional
+    public Listing getAvailableListingForPurchase(UUID id, UUID buyerId) {
+        Listing listing = listingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + id));
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This item is no longer available");
+        }
+        if (listing.getSellerId().equals(buyerId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't buy your own listing");
+        }
+        return listing;
+    }
+
+    @Transactional
+    public void reserveForOrder(UUID listingId, UUID orderId) {
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + listingId));
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This item is no longer available");
+        }
+        listing.reserve(orderId);
+    }
+
+    @Transactional
+    public void completeOrderReservation(UUID listingId, UUID orderId) {
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + listingId));
+        listing.markSold(orderId);
+    }
+
+    @Transactional
+    public boolean completeLegacyPayment(UUID listingId) {
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + listingId));
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            return false;
+        }
+        listing.markSoldAfterLegacyPayment();
+        return true;
+    }
+
+    @Transactional
+    public void releaseOrderReservation(UUID listingId, UUID orderId) {
+        Listing listing = listingRepository.findByIdForUpdate(listingId)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + listingId));
+        listing.releaseReservation(orderId);
+    }
+
+    @Transactional
     public Listing updateListing(UUID id, UUID requesterId, boolean isAdmin, UpdateListingRequest request) {
-        Listing listing = getListingOrThrow(id);
+        Listing listing = listingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + id));
         requireOwnerOrAdmin(listing, requesterId, isAdmin);
+        if (listing.getStatus() != ListingStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only active listings can be edited");
+        }
         listing.updateDetails(request.title(), request.description(), request.price(), request.location());
         return listing;
     }
 
+    @Transactional
     public void removeListing(UUID id, UUID requesterId, boolean isAdmin) {
-        Listing listing = getListingOrThrow(id);
+        Listing listing = listingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new NoSuchElementException("Listing not found: " + id));
         requireOwnerOrAdmin(listing, requesterId, isAdmin);
+        if (listing.getStatus() == ListingStatus.RESERVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This listing can't be removed while a payment is pending");
+        }
         listing.remove();
     }
 

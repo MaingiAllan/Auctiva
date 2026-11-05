@@ -2,6 +2,8 @@ package com.auctiva.backend.payments;
 
 import com.auctiva.backend.identity.Role;
 import com.auctiva.backend.identity.UserPrincipal;
+import com.auctiva.backend.orders.Order;
+import com.auctiva.backend.orders.OrderService;
 import com.auctiva.backend.payments.dto.PaymentResponse;
 import com.auctiva.backend.payments.dto.StkPushRequest;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,9 +32,11 @@ public class PaymentController {
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     private final PaymentService service;
+    private final OrderService orders;
 
-    public PaymentController(PaymentService service) {
+    public PaymentController(PaymentService service, OrderService orders) {
         this.service = service;
+        this.orders = orders;
     }
 
     @PostMapping("/mpesa/stk-push")
@@ -42,7 +46,8 @@ public class PaymentController {
         if (key.isBlank() || key.length() > 64) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Idempotency-Key must be 1-64 characters");
         }
-        Payment payment = service.startMpesaPayment(me.getId(), request.listingId(), request.phone(), key);
+        Order order = orders.createPendingOrder(me.getId(), request.listingId(), key);
+        Payment payment = service.startMpesaPayment(me.getId(), order.getId(), request.phone(), key);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(PaymentResponse.from(payment));
     }
 

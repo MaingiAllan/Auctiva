@@ -66,6 +66,9 @@ public class Listing {
     @Column(nullable = false)
     private ListingStatus status = ListingStatus.ACTIVE;
 
+    @Column(name = "reserved_order_id")
+    private UUID reservedOrderId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -108,8 +111,38 @@ public class Listing {
         this.updatedAt = Instant.now();
     }
 
-    public void markSold() {
+    public void reserve(UUID orderId) {
+        this.status = ListingStatus.RESERVED;
+        this.reservedOrderId = orderId;
+        this.updatedAt = Instant.now();
+    }
+
+    public void markSold(UUID orderId) {
+        if (status != ListingStatus.RESERVED || !orderId.equals(reservedOrderId)) {
+            throw new IllegalStateException("Listing is not reserved for this order");
+        }
+        markSold();
+    }
+
+    public void markSoldAfterLegacyPayment() {
+        if (status != ListingStatus.ACTIVE) {
+            throw new IllegalStateException("Listing is no longer available for this payment");
+        }
+        markSold();
+    }
+
+    private void markSold() {
         this.status = ListingStatus.SOLD;
+        this.reservedOrderId = null;
+        this.updatedAt = Instant.now();
+    }
+
+    public void releaseReservation(UUID orderId) {
+        if (status != ListingStatus.RESERVED || !orderId.equals(reservedOrderId)) {
+            throw new IllegalStateException("Listing is not reserved for this order");
+        }
+        this.status = ListingStatus.ACTIVE;
+        this.reservedOrderId = null;
         this.updatedAt = Instant.now();
     }
 
@@ -160,6 +193,10 @@ public class Listing {
 
     public ListingStatus getStatus() {
         return status;
+    }
+
+    public UUID getReservedOrderId() {
+        return reservedOrderId;
     }
 
     public Instant getCreatedAt() {

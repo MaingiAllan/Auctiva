@@ -20,8 +20,8 @@ prototypes. *You are here.*
 5. Listing creation + moderation, image upload
 6. Search & discovery
 7. Seller profiles & trust indicators
-8. Checkout & order creation
-9. Payment-provider integration (M-PESA) + reconciliation
+8. Checkout & order creation — initial fixed-price order flow and inventory reservation implemented
+9. Payment-provider integration (M-PESA) — Daraja STK Push and callback confirmation implemented; production credentials and reconciliation remain
 10. Protected-payment/escrow workflow *(pending legal sign-off)*
 11. Logistics & tracking
 12. Disputes & returns
@@ -48,3 +48,4 @@ turnaround, fraud incidents, unit economics.
 - No escrow/wallet claims before Kenyan legal & regulatory confirmation.
 - No ML pricing before ≥10k transactions / 12 months of clean data.
 - No proprietary inspection network before partner-based inspection is validated.
+- Current M-Pesa checkout records buyer payments and updates listing/order state; seller payouts, wallet deposits/withdrawals, refunds, and held funds are not implemented.

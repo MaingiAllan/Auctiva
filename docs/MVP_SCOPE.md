@@ -11,7 +11,7 @@ selling, auctioning, and trade-in can be done *safely and transparently* in Keny
 - **Verification**: IMEI/serial OCR + blacklist screening, partner-based inspection
   (2–3 partners, not a proprietary inspection network).
 - **Trust**: buyer/seller/device/listing trust scores, verified reviews.
-- **Payments**: M-PESA + cards, subject to legal review before any escrow/custodial claim.
+- **Payments**: M-PESA Daraja STK Push for fixed-price checkout; escrow/custodial features, wallets, refunds, and seller payouts remain subject to legal and operational review.
 - **Fraud**: rule-based 0–100 risk score, human review above threshold — no ML fraud yet.
 - **AI**: OCR + brand/model detection + damage flagging only, always labeled as an
   estimate; a technician makes final calls.

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { MapPin, Smartphone } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CheckoutButton from "@/components/CheckoutButton";
 import { CATEGORY_LABEL, GRADE_LABEL, LISTING_TYPE_LABEL, getListing } from "@/lib/api";
 import { kes } from "@/lib/format";
 
@@ -25,7 +26,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
             <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl">{l.title}</h1>
             <p className="mt-3 text-3xl font-extrabold text-navy">{kes(l.price, l.currency)}</p>
             {l.location && <p className="mt-2 flex items-center gap-1 text-sm text-ink/60"><MapPin className="h-4 w-4" />{l.location}</p>}
-            <p className="mt-5 rounded-xl bg-navy-soft p-3 text-sm text-ink/75">Checkout and seller messaging are coming soon.</p>
+            <CheckoutButton listingId={l.id} status={l.status} />
+            <p className="mt-3 text-xs text-ink/55">Seller messaging and buyer protection are coming soon.</p>
             <h2 className="mt-8 text-lg font-bold">Specifications</h2>
             <dl className="mt-3 divide-y divide-navy/10 rounded-xl border border-navy/10">{specs.map(([k, v]) => <div key={k} className="flex justify-between gap-4 px-4 py-3 text-sm"><dt className="text-ink/60">{k}</dt><dd className="font-semibold text-navy">{v}</dd></div>)}</dl>
             {l.description && <><h2 className="mt-8 text-lg font-bold">Description</h2><p className="mt-2 whitespace-pre-line text-ink/75">{l.description}</p></>}

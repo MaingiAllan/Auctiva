@@ -61,6 +61,9 @@ public class MpesaClient {
                 .headers(h -> h.setBasicAuth(consumerKey, consumerSecret))
                 .retrieve()
                 .body(JsonNode.class);
+        if (res == null || res.path("access_token").asText().isBlank()) {
+            throw new MpesaException("Could not retrieve M-Pesa access token");
+        }
         token = res.path("access_token").asText();
         tokenExpiry = Instant.now().plusSeconds(Math.max(60, res.path("expires_in").asLong(3599) - 60));
         return token;
@@ -71,34 +74,49 @@ public class MpesaClient {
                 || callbackBaseUrl.isBlank() || callbackToken.isBlank()) {
             throw new MpesaException("M-Pesa is not configured");
         }
+        String bearer;
         try {
-            String timestamp = LocalDateTime.now(ZoneId.of("Africa/Nairobi")).format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-            String password = Base64.getEncoder().encodeToString((shortcode + passkey + timestamp).getBytes(StandardCharsets.UTF_8));
-            Map<String, Object> body = new LinkedHashMap<>();
-            body.put("BusinessShortCode", shortcode);
-            body.put("Password", password);
-            body.put("Timestamp", timestamp);
-            body.put("TransactionType", "CustomerPayBillOnline");
-            body.put("Amount", amount);
-            body.put("PartyA", phone);
-            body.put("PartyB", shortcode);
-            body.put("PhoneNumber", phone);
-            body.put("CallBackURL", callbackBaseUrl + "/api/payments/mpesa/callback/" + callbackToken);
-            body.put("AccountReference", paymentId.toString().substring(0, 8));
-            body.put("TransactionDesc", "Auctiva");
-            JsonNode res = http.post()
+            bearer = accessToken();
+        } catch (RestClientException ex) {
+            throw new MpesaException("Could not reach M-Pesa authorization");
+        }
+        String timestamp = LocalDateTime.now(ZoneId.of("Africa/Nairobi")).format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String password = Base64.getEncoder().encodeToString((shortcode + passkey + timestamp).getBytes(StandardCharsets.UTF_8));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("BusinessShortCode", shortcode);
+        body.put("Password", password);
+        body.put("Timestamp", timestamp);
+        body.put("TransactionType", "CustomerPayBillOnline");
+        body.put("Amount", amount);
+        body.put("PartyA", phone);
+        body.put("PartyB", shortcode);
+        body.put("PhoneNumber", phone);
+        body.put("CallBackURL", callbackBaseUrl + "/api/payments/mpesa/callback/" + callbackToken);
+        body.put("AccountReference", paymentId.toString().substring(0, 8));
+        body.put("TransactionDesc", "Auctiva");
+        JsonNode res;
+        try {
+            res = http.post()
                     .uri(baseUrl + "/mpesa/stkpush/v1/processrequest")
-                    .headers(h -> h.setBearerAuth(accessToken()))
+                    .headers(h -> h.setBearerAuth(bearer))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
                     .body(JsonNode.class);
-            if (res == null || !"0".equals(res.path("ResponseCode").asText())) {
-                throw new MpesaException("M-Pesa rejected the request");
-            }
-            return new StkResponse(res.path("MerchantRequestID").asText(), res.path("CheckoutRequestID").asText());
         } catch (RestClientException ex) {
-            throw new MpesaException("Could not reach M-Pesa");
+            throw new MpesaException("M-Pesa payment outcome is unknown", true);
         }
+        if (res == null) {
+            throw new MpesaException("M-Pesa returned no payment response", true);
+        }
+        if (!"0".equals(res.path("ResponseCode").asText())) {
+            throw new MpesaException("M-Pesa rejected the request");
+        }
+        String merchantRequestId = res.path("MerchantRequestID").asText();
+        String checkoutRequestId = res.path("CheckoutRequestID").asText();
+        if (merchantRequestId.isBlank() || checkoutRequestId.isBlank()) {
+            throw new MpesaException("M-Pesa accepted the request without payment identifiers", true);
+        }
+        return new StkResponse(merchantRequestId, checkoutRequestId);
     }
 }

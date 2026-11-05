@@ -12,6 +12,9 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 };
 export const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
 export type ListingType = "BRAND_NEW" | "REFURBISHED" | "FAIRLY_USED" | "PARTS_ONLY";
+export type ListingStatus = "ACTIVE" | "RESERVED" | "SOLD" | "REMOVED";
+export type OrderStatus = "PENDING_PAYMENT" | "PAYMENT_REVIEW" | "PAID" | "CANCELLED";
+export type PaymentStatus = "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "REQUIRES_REVIEW";
 export const LISTING_TYPE_LABEL: Record<ListingType, string> = {
   BRAND_NEW: "Brand New",
   REFURBISHED: "Refurbished",
@@ -20,7 +23,10 @@ export const LISTING_TYPE_LABEL: Record<ListingType, string> = {
 };
 export const LISTING_TYPES = Object.keys(LISTING_TYPE_LABEL) as ListingType[];
 export type DeviceModel = { id: string; brandName: string; name: string; variant: string | null; releaseYear: number | null; category: Category };
-export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; listingType: ListingType; conditionGrade: Grade | null; price: number; currency: string; location: string | null; status: string; createdAt: string; imageUrls?: string[] };
+export type Listing = { id: string; sellerId: string; deviceModel: DeviceModel; title: string; description: string | null; listingType: ListingType; conditionGrade: Grade | null; price: number; currency: string; location: string | null; status: ListingStatus; createdAt: string; imageUrls?: string[] };
+export type Order = { id: string; listingId: string; amount: number; currency: string; status: OrderStatus; createdAt: string };
+export type Payment = { id: string; listingId: string; orderId: string | null; amount: number; currency: string; status: PaymentStatus; mpesaReceipt: string | null; message: string | null; createdAt: string };
+export type CheckoutResponse = { order: Order; payment: Payment };
 export type CreateListingInput = {
   deviceModelId: string;
   title: string;
@@ -36,11 +42,15 @@ export type Auth = { token: string; email: string; role: string };
 
 // Server components call the backend directly and cache for 30s (fast repeat visits).
 const SERVER = process.env.BACKEND_URL ?? "http://localhost:8080";
-async function serverGet<T>(path: string): Promise<T | null> {
-  try { const r = await fetch(`${SERVER}${path}`, { next: { revalidate: 30 } }); return r.ok ? ((await r.json()) as T) : null; } catch { return null; }
+async function serverGet<T>(path: string, revalidate = 30): Promise<T | null> {
+  try {
+    const options = revalidate > 0 ? { next: { revalidate } } : { cache: "no-store" as const };
+    const r = await fetch(`${SERVER}${path}`, options);
+    return r.ok ? ((await r.json()) as T) : null;
+  } catch { return null; }
 }
-export const getListings = () => serverGet<Listing[]>("/api/listings");
-export const getListing = (id: string) => serverGet<Listing>(`/api/listings/${encodeURIComponent(id)}`);
+export const getListings = () => serverGet<Listing[]>("/api/listings", 0);
+export const getListing = (id: string) => serverGet<Listing>(`/api/listings/${encodeURIComponent(id)}`, 0);
 export const getCatalogModels = () => serverGet<(DeviceModel & { brandId: string })[]>("/api/catalog/device-models");
 
 // Browser calls go through the same-origin /api rewrite (see next.config.js).
@@ -69,6 +79,26 @@ export const getDeviceModels = (category?: Category, brandId?: string) => {
   return call<(DeviceModel & { brandId: string })[]>(`/api/catalog/device-models${params.size ? `?${params}` : ""}`);
 };
 export const createListing = (token: string, data: CreateListingInput) => call<Listing>("/api/listings", data, token);
+export async function createOrder(token: string, listingId: string, phone: string, idempotencyKey: string) {
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({ listingId, phone }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(response.status, data?.message ?? `Checkout failed (${response.status})`);
+  }
+  return data as CheckoutResponse;
+}
+export const getOrder = (token: string, id: string) =>
+  call<Order>(`/api/orders/${encodeURIComponent(id)}`, undefined, token);
+export const getPendingOrder = (token: string, listingId: string) =>
+  call<Order | null>(`/api/orders/pending?listingId=${encodeURIComponent(listingId)}`, undefined, token);
 export async function uploadListingImages(token: string, listingId: string, files: File[]) {
   const body = new FormData();
   files.forEach((file) => body.append("images", file));
